@@ -38,6 +38,24 @@ lib_fixups: lib_fixups_user_type = {
     'vendor.xiaomi.hardware.campostproc@1.0': lib_fixup_system_suffix,
 }
 
+# The Dolby HEVC blobs allocate a GraphicBuffer-sized object with operator new
+# right after UnwrapNativeCodec2GrallocHandle and reserve 0x100 bytes for it:
+#
+#     mov  x20, x0            <- unwrapped handle
+#     mov  w0, #0x100         <- size passed to operator new
+#     bl   _Znwm
+#
+# libui writes that object through offset 0xd28, so 256 bytes overrun the heap
+# while Dolby Vision metadata is generated. Reserve 0x1000 instead.
+#
+# The mov is paired with the following operator new call to keep the pattern
+# unique: c2.dolby.hevc.enc.so also carries an unrelated "mov w0, #0x100" at
+# 0x1d4c8 (C2AndroidMemoryUsage::FromGrallocUsage), so do not shorten it.
+GRAPHICBUFFER_ALLOC_ENCODER = (b'\x00\x20\x80\x52\x03\x42\x00\x94',
+                               b'\x00\x00\x82\x52\x03\x42\x00\x94')
+GRAPHICBUFFER_ALLOC_DECODER = (b'\x00\x20\x80\x52\x74\x54\x00\x94',
+                               b'\x00\x00\x82\x52\x74\x54\x00\x94')
+
 def blob_fixup_split_file(
     ctx: 'BlobFixupCtx',
     file: 'File',
@@ -76,6 +94,14 @@ blob_fixups: blob_fixups_user_type = {
     'system/priv-app/MiuiCamera/MiuiCamera.apk': blob_fixup()
         .apktool_patch('patches')
         .call(blob_fixup_split_file),
+    'vendor/lib64/c2.dolby.client.so': blob_fixup()
+        .add_needed('dolbycodec_shim.so'),
+    'vendor/lib64/c2.dolby.hevc.enc.so': blob_fixup()
+        .binary_regex_replace(*GRAPHICBUFFER_ALLOC_ENCODER),
+    'vendor/lib64/c2.dolby.hevc.dec.so': blob_fixup()
+        .binary_regex_replace(*GRAPHICBUFFER_ALLOC_DECODER),
+    'vendor/lib64/c2.dolby.hevc.sec.dec.so': blob_fixup()
+        .binary_regex_replace(*GRAPHICBUFFER_ALLOC_DECODER),
 }  # fmt: skip
 
 module = ExtractUtilsModule(

@@ -8,3 +8,12 @@ cc_library {
     name: "libgui_shim_miuicamera",
     srcs: ["libgui_shim_miuicamera.c"],
 }
+
+cc_library_shared {
+    name: "dolbycodec_shim",
+    srcs: ["dolbycodec_shim.cpp"],
+    shared_libs: [
+        "libcodec2_hidl@1.0",
+    ],
+    vendor: true,
+}

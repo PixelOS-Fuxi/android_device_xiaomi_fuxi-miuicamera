@@ -1,0 +1,18 @@
+<manifest version="1.0" type="device">
+    <!--
+        Dolby Codec2 component store. The stock c2_manifest_vendor.xml
+        (shipped by the vendor tree) only declares the default and software
+        stores, but Codec2Client::CacheServiceNames() enumerates the stores
+        from the device manifest and never opens a store that is not declared
+        there.
+    -->
+    <hal format="hidl">
+        <name>android.hardware.media.c2</name>
+        <transport>hwbinder</transport>
+        <version>1.0</version>
+        <interface>
+            <name>IComponentStore</name>
+            <instance>dolby</instance>
+        </interface>
+    </hal>
+</manifest>

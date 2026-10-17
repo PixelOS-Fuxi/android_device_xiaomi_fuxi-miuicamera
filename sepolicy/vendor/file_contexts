@@ -1,3 +1,6 @@
+# Dolby Codec2 component store (Dolby Vision encoder)
+/(vendor|system/vendor)/bin/hw/dolbycodec2                                                  u:object_r:vendorcodec_exec:s0
+
 # same-process HAL files and their dependencies
 /data/vendor/perfspy(/.*)?                                                                          u:object_r:vendor_camera_data_file:s0
 /dev/stmvl53l5                                                                                      u:object_r:stmvl53l5_device:s0
