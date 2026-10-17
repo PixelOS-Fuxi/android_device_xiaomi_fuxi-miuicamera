@@ -1,4 +1,4 @@
-# Value matching stock fuxi OS3.0.307.0.WMCCNXM odm/etc/build.prop for the
+# Values matching stock fuxi OS3.0.308.0.WMCCNXM odm/etc/build.prop for the
 # Dolby Vision camera path (MIUI Camera + libmediaimpl/libmisurfaceflinger).
 ro.vendor.display.dolbyvision.support=true
 ro.vendor.mi_sf.gallery_p3_dolby_opt=true

@@ -7,13 +7,13 @@ system_ext/lib64/libmicampostproc_client.so:system/lib64/libmicampostproc_client
 system_ext/lib64/vendor.xiaomi.hardware.campostproc@1.0.so:system/lib64/vendor.xiaomi.hardware.campostproc@1.0.so;MODULE_SUFFIX=_system
 
 # quickcamera HAL - camx (odm/lib64/hw/camera.qcom.so) dlopens libquickcamera.so.
-# These blobs are extracted from fuxi OS3.0.307.0.WMCCNXM.
+# Byte-identical to the blobs in fuxi OS3.0.308.0.WMCCNXM.
 vendor/lib64/hw/vendor.xiaomi.hardware.quickcamera@1.0-impl.so
 vendor/lib64/libquickcamera.so
 vendor/lib64/vendor.xiaomi.hardware.quickcamera@1.0.so
 
 # Dolby Vision (Dolby Codec2 component store + video processing)
-# Extracted from fuxi OS3.0.307.0.WMCCNXM.
+# Byte-identical to the blobs in fuxi OS3.0.308.0.WMCCNXM after the fixups below.
 # c2.dolby.client.so gets dolbycodec_shim.so (libcodec2_hidl objcpy overload
 # renamed in Android 17) and the HEVC blobs are patched against the libui
 # GraphicBuffer allocation overrun - see extract-files.py.
