@@ -25,4 +25,7 @@ hal_server_domain(hal_quickcamera_default, hal_quickcamera)
 binder_call(hal_quickcamera_client, hal_quickcamera_server)
 binder_call(hal_quickcamera_server, hal_quickcamera_client)
 
-add_hwservice(hal_quickcamera_server, hal_quickcamera_hwservice)
+# The registration allows for hal_quickcamera_hwservice are written by hand in
+# sm8550-common's hal_quickcamera.te, which declares the type: the interface is
+# registered by the camera provider as well, and add_hwservice() would generate
+# a neverallow that only exempts a single domain.
