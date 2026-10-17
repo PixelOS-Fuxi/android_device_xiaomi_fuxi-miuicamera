@@ -1,21 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Dolby Vision encoder declaration for fuxi.
+    Dolby Vision declaration for fuxi.
 
     The stock media_codecs_kalama.xml that the build ships declares no
     video/dolby-vision encoder (the c2.qti.dv.encoder block is commented out and
     the c2.dolby.encoder.hevc block was dropped with the rest of the Dolby
     stack), and Codec2InfoBuilder drops every component that is not part of the
-    parsed XML map, so MIUI Camera cannot record Dolby Vision at all.
+    parsed XML map, so MIUI Camera cannot record Dolby Vision at all. The stock
+    ROM also keeps a c2.dolby.decoder.hevc and a c2.dolby.decoder.hevc.secure
+    component for playback, which are declared here as well.
 
     media_codecs_c2.xml is parsed by Codec2InfoBuilder in addition to the
     variant XML files (frameworks/av/media/codec2/sfplugin/Codec2InfoBuilder.cpp),
     which lets the declaration be added without replacing the vendor XML.
 
-    The MediaCodec block below is taken verbatim from the stock
-    media_codecs_kalama_vendor.xml of fuxi OS3.0.307.0.WMCCNXM.
+    All three MediaCodec blocks below are taken verbatim from the stock
+    media_codecs_kalama_vendor.xml of fuxi OS3.0.308.0.WMCCNXM (the 307 dump
+    carries the same blocks). The component names are registered by the blobs
+    shipped by vendor/xiaomi/fuxi-miuicamera: c2.dolby.encoder.hevc by
+    c2.dolby.hevc.enc.so, c2.dolby.decoder.hevc by c2.dolby.hevc.dec.so and
+    c2.dolby.decoder.hevc.secure by c2.dolby.hevc.sec.dec.so.
 -->
 <MediaCodecs>
+  <Decoders>
+    <MediaCodec name="c2.dolby.decoder.hevc" type="video/dolby-vision">
+      <Limit name="size" min="96x96" max="8192x8192"/>
+      <Limit name="alignment" value="2x2"/>
+      <Limit name="block-size" value="16x16"/>
+      <Limit name="block-count" range="36-138240"/>
+      <Limit name="blocks-per-second" min="1" max="7776000"/>
+      <Limit name="bitrate" range="1-160000000"/>
+      <Limit name="frame-rate" range="1-480"/>
+      <Feature name="adaptive-playback"/>
+      <Limit name="concurrent-instances" max="16"/>
+      <Limit name="performance-point-4096x2160" value="120"/>
+      <Limit name="performance-point-3840x2160" value="240"/>
+      <Limit name="performance-point-1920x1080" value="480"/>
+      <Limit name="performance-point-7680x4320" value="60" />
+      <Limit name="performance-point-8192x4320" value="48" />
+    </MediaCodec>
+    <MediaCodec name="c2.dolby.decoder.hevc.secure" type="video/dolby-vision">
+      <Limit name="size" min="96x96" max="4096x4096" />
+      <Limit name="block-count" range="36-36864" />
+      <Limit name="alignment" value="2x2" />
+      <Limit name="block-size" value="16x16" />
+      <Limit name="block-count" range="36-34560" />
+      <Limit name="blocks-per-second" min="36" max="2073600" />
+      <Limit name="bitrate" range="1-40000000" />
+      <Limit name="frame-rate" range="1-60" />
+      <Limit name="concurrent-instances" max="1" />
+      <Limit name="performance-point-4096x2304" value="30" />
+      <Limit name="performance-point-4096x2160" value="60" />
+      <Limit name="performance-point-3840x2160" value="60" />
+      <Feature name="adaptive-playback" />
+      <Feature name="secure-playback" required="true" />
+    </MediaCodec>
+  </Decoders>
   <Encoders>
     <MediaCodec name="c2.dolby.encoder.hevc" type="video/dolby-vision">
       <Limit name="size" min="96x96" max="8192x8192" />
