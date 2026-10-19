@@ -1,0 +1,120 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Arian <arian.kulmer@web.de>
+Date: Sat, 29 Aug 2026 11:47:03 +0700
+Subject: [PATCH 9/9] Support third party galleries
+
+Adapted for MiuiCamera 6.4.000370.0 (fuxi OS3.0.306.0.WMCMIXM).
+
+Original upstream patches (kunzite-stuff/device_xiaomi_kunzite-miuicamera@cnb):
+  0008-Change-com.android.camera.action.REVIEW-to-android.p.patch
+  0009-Support-third-party-galleries.patch
+
+MiuiCamera hardcodes com.miui.gallery both as the intent package and as the
+action namespace. com.miui.gallery is not shipped by PixelOS, so the preview
+button throws ActivityNotFoundException and falls back to the chooser.
+
+Changes:
+  - A/e3.smali: use android.provider.action.REVIEW instead of
+    com.android.camera.action.REVIEW, and drop the hardcoded
+    setPackage("com.miui.gallery").
+  - Camera.smali: use android.intent.category.APP_GALLERY instead of the
+    com.miui.gallery package name, android.intent.action.VIEW instead of
+    com.miui.gallery.action.VIEW_EMPTY_PHOTO, and addCategory() instead of
+    setPackage().
+
+Not carried over from 0009: the smali_classes2/C9/d.smali hunk
+(`const/4 v3, 0x4` -> `0x2`). That class does not exist in 6.4.000370.0.
+
+---
+--- a/smali/A/e3.smali	2026-10-19 18:17:35.883310028 +0800
++++ b/smali/A/e3.smali	2026-10-19 18:18:30.067914977 +0800
+@@ -87,7 +87,7 @@
+ 
+     const/4 v4, 0x0
+ 
+-    const-string v5, "com.android.camera.action.REVIEW"
++    const-string v5, "android.provider.action.REVIEW"
+ 
+     if-eqz v1, :cond_0
+ 
+@@ -131,7 +131,7 @@
+     :cond_1
+     new-array v1, v4, [Ljava/lang/Object;
+ 
+-    const-string v6, "gotoGallery: com.android.camera.action.REVIEW"
++    const-string v6, "gotoGallery: android.provider.action.REVIEW"
+ 
+     invoke-static {v3, v6, v1}, Lcom/android/camera/log/Log;->d(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)V
+ 
+@@ -140,10 +140,6 @@
+     invoke-direct {v1, v5, p2}, Landroid/content/Intent;-><init>(Ljava/lang/String;Landroid/net/Uri;)V
+ 
+     :goto_0
+-    const-string p2, "com.miui.gallery"
+-
+-    invoke-virtual {v1, p2}, Landroid/content/Intent;->setPackage(Ljava/lang/String;)Landroid/content/Intent;
+-
+     const-string p2, "from_MiuiCamera"
+ 
+     invoke-virtual {v1, p2, v2}, Landroid/content/Intent;->putExtra(Ljava/lang/String;Z)Landroid/content/Intent;
+--- a/smali/com/android/camera/Camera.smali	2026-10-19 18:17:35.883712528 +0800
++++ b/smali/com/android/camera/Camera.smali	2026-10-19 18:17:35.898593209 +0800
+@@ -16063,7 +16063,7 @@
+     invoke-direct {p0, p1}, Landroid/content/Intent;-><init>(Ljava/lang/String;)V
+ 
+     :goto_6
+-    invoke-virtual {p0, v2}, Landroid/content/Intent;->setPackage(Ljava/lang/String;)Landroid/content/Intent;
++    invoke-virtual {p0, v2}, Landroid/content/Intent;->addCategory(Ljava/lang/String;)Landroid/content/Intent;
+ 
+     :cond_b
+     const-string/jumbo p1, "video/*"
+@@ -16140,7 +16140,7 @@
+     if-eqz p1, :cond_e
+ 
+     :try_start_7
+-    invoke-virtual {p0, v2}, Landroid/content/Intent;->setPackage(Ljava/lang/String;)Landroid/content/Intent;
++    invoke-virtual {p0, v2}, Landroid/content/Intent;->addCategory(Ljava/lang/String;)Landroid/content/Intent;
+ 
+     :cond_e
+     const-string p1, "image/*"
+@@ -16262,7 +16262,7 @@
+ 
+     const-string p1, "gotoGallery: no gallery"
+ 
+-    const-string v2, "com.miui.gallery"
++    const-string v2, "android.intent.category.APP_GALLERY"
+ 
+     if-eqz p0, :cond_13
+ 
+@@ -16271,7 +16271,7 @@
+     if-nez p0, :cond_15
+ 
+     :try_start_8
+-    const-string p0, "gotoGallery: com.miui.gallery.action.VIEW_EMPTY_PHOTO"
++    const-string p0, "gotoGallery: android.intent.action.VIEW"
+ 
+     new-array v3, v1, [Ljava/lang/Object;
+ 
+@@ -16279,11 +16279,11 @@
+ 
+     new-instance p0, Landroid/content/Intent;
+ 
+-    const-string v3, "com.miui.gallery.action.VIEW_EMPTY_PHOTO"
++    const-string v3, "android.intent.action.VIEW"
+ 
+     invoke-direct {p0, v3}, Landroid/content/Intent;-><init>(Ljava/lang/String;)V
+ 
+-    invoke-virtual {p0, v2}, Landroid/content/Intent;->setPackage(Ljava/lang/String;)Landroid/content/Intent;
++    invoke-virtual {p0, v2}, Landroid/content/Intent;->addCategory(Ljava/lang/String;)Landroid/content/Intent;
+ 
+     const-string v2, "from_MiuiCamera"
+ 
+@@ -16324,7 +16324,7 @@
+ 
+     invoke-direct {p0, v0}, Landroid/content/Intent;-><init>(Ljava/lang/String;)V
+ 
+-    invoke-virtual {p0, v2}, Landroid/content/Intent;->setPackage(Ljava/lang/String;)Landroid/content/Intent;
++    invoke-virtual {p0, v2}, Landroid/content/Intent;->addCategory(Ljava/lang/String;)Landroid/content/Intent;
+ 
+     invoke-virtual {v4, p0}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
+ 
