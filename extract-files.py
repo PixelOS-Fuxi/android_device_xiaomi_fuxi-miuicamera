@@ -56,6 +56,34 @@ GRAPHICBUFFER_ALLOC_ENCODER = (b'\x00\x20\x80\x52\x03\x42\x00\x94',
 GRAPHICBUFFER_ALLOC_DECODER = (b'\x00\x20\x80\x52\x74\x54\x00\x94',
                                b'\x00\x00\x82\x52\x74\x54\x00\x94')
 
+# dolbycodec2 allocates the Codec2 HIDL component store wrapper with operator
+# new, using the sizeof() value it was compiled against on Android 16:
+#
+#     mov  w0, #0x108         <- size passed to operator new
+#     bl   _Znwm
+#     bl   ...utils::ComponentStore::ComponentStore(shared_ptr<C2ComponentStore>)
+#
+# android::hardware::media::c2::V1_0::utils::ComponentStore grew to 0x120 in
+# Android 17 (RefBase moved from +0xf8 to +0x110, mRefs from +0x100 to +0x118).
+# scudo rounds new(0x108) to a 0x120 byte chunk with a 16 byte header, leaving
+# 0x110 usable bytes, so the constructor's write of mRefs lands 16 bytes past
+# the allocation - on the next chunk's header. The HIDL thread later calls
+# decStrong() on that store and dereferences the mRefs that was written
+# out of bounds, which was observed as a SIGSEGV at RefBase::decStrong+28 with
+# x19 (mRefs) == 0, called from
+# BnHwComponentStore::_hidl_createInterface (tombstone_17.pb).
+#
+# Reserve 0x120 instead: new(0x120) lands in the 0x160 byte chunk class, giving
+# 0x150 usable bytes. 0x120 is also the exact sizeof(ComponentStore) of the
+# Android 17 build, as proven by the `mov w1, #0x120` in the deleting destructor
+# of libcodec2_hidl@1.0.so.
+#
+# The mov is paired with the following operator new call to keep the pattern
+# unique: 0x108 also appears as the CAM_FLUSH_REQ opcode in the camera kernel,
+# which is unrelated.
+DOLBY_CODEC2_STORE_SIZE = (b'\x00\x21\x80\x52',
+                           b'\x00\x24\x80\x52')
+
 def blob_fixup_split_file(
     ctx: 'BlobFixupCtx',
     file: 'File',
@@ -94,6 +122,8 @@ blob_fixups: blob_fixups_user_type = {
     'system/priv-app/MiuiCamera/MiuiCamera.apk': blob_fixup()
         .apktool_patch('patches')
         .call(blob_fixup_split_file),
+    'vendor/bin/hw/dolbycodec2': blob_fixup()
+        .binary_regex_replace(*DOLBY_CODEC2_STORE_SIZE),
     'vendor/lib64/c2.dolby.client.so': blob_fixup()
         .add_needed('dolbycodec_shim.so'),
     'vendor/lib64/c2.dolby.hevc.enc.so': blob_fixup()
