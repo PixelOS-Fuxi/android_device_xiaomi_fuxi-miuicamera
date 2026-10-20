@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: OodavidsinoO <david.sin@tuta.io>
+Date: Tue, 20 Oct 2026 13:00:00 +0800
+Subject: [PATCH] Skip frame decode for Dolby Vision videos
+
+MiuiCamera's thumbnail loader tries two sources in order: the cover box that
+the app itself writes into the MP4, and, when that is missing, a real frame
+decode through MediaMetadataRetriever.
+
+On this device the second path never returns for Dolby Vision files. The
+Dolby Vision Codec2 decoder (c2.dolby.hevc.dec.so) self-deadlocks in
+onRelease(): it posts a blocking message to the looper that is executing
+onRelease(), so the reply can never be delivered. MediaCodec::release() then
+waits forever inside ALooper::awaitResponse(), and because
+MetadataRetrieverClient holds a process-wide lock across the whole call,
+every later thumbnail or metadata request in mediaserver hangs too -- the
+symptom is an ordinary recording saved as .pending-<name>.mp4.
+
+The blob is byte-identical to the official HyperOS 3.0.306.0 build, so the
+defect cannot be fixed by updating it, and it cannot be patched in place.
+
+The framework now bounds both waits, but the cheapest fix is to not enter the
+path at all: a Dolby Vision recording already carries the cover the app wrote,
+and decoding is only ever the fallback. Detect the mimetype before decoding
+and bail out, which lets the caller keep whatever the cover box produced.
+
+Detected via METADATA_KEY_MIMETYPE (12); the string "dolby-vision" is what
+MPEG4Extractor reports for a track carrying a dvvC box. Throwing here is
+caught by the existing handler in the same method, which logs and returns
+null, i.e. "no thumbnail from decode" -- exactly the desired outcome.
+
+--- a/smali/A/a4.smali	2026-10-20 12:53:12.867768493 +0800
++++ b/smali/A/a4.smali	2026-10-20 12:53:50.624201410 +0800
+@@ -1378,6 +1378,31 @@
+     invoke-virtual {v0, p3, p4}, Landroid/media/MediaMetadataRetriever;->setDataSource(Landroid/content/Context;Landroid/net/Uri;)V
+ 
+     :goto_1
++    const/16 p1, 0xc
++
++    invoke-virtual {v0, p1}, Landroid/media/MediaMetadataRetriever;->extractMetadata(I)Ljava/lang/String;
++
++    move-result-object p1
++
++    if-eqz p1, :cond_dv
++
++    const-string p2, "dolby-vision"
++
++    invoke-virtual {p1, p2}, Ljava/lang/String;->contains(Ljava/lang/CharSequence;)Z
++
++    move-result p1
++
++    if-eqz p1, :cond_dv
++
++    new-instance p1, Ljava/lang/IllegalArgumentException;
++
++    const-string p2, "skip dolby vision frame decode"
++
++    invoke-direct {p1, p2}, Ljava/lang/IllegalArgumentException;-><init>(Ljava/lang/String;)V
++
++    throw p1
++
++    :cond_dv
+     const/16 p1, 0x18
+ 
+     invoke-virtual {v0, p1}, Landroid/media/MediaMetadataRetriever;->extractMetadata(I)Ljava/lang/String;
